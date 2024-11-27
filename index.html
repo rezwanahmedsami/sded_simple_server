@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Query Executor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 1rem;
+            resize: none;
+            margin-bottom: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SDED Query Executor</h1>
+        <textarea id="queryInput" placeholder="Write your SQLite query here..."></textarea>
+        <button id="executeButton">Execute</button>
+        <div id="resultBox" class="result-box"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script>
+        //const socket = io("http://192.168.0.105:3000/admin"); // Connect to the Socket.IO server
+        // connect to namespace/admin
+        const socket = io("http://192.168.0.105:3000/admin"); // Connect to the Socket.IO server
+        const executeButton = document.getElementById('executeButton');
+        const queryInput = document.getElementById('queryInput');
+        const resultBox = document.getElementById('resultBox');
+
+        executeButton.addEventListener('click', () => {
+            const query = queryInput.value.trim();
+            if (query) {
+                // Emit the query
+                socket.emit('perform_query', query);
+        
+                // Clear the result box while waiting for response
+                resultBox.textContent = 'Executing query...';
+        
+                // Wait for the result
+                socket.on('perform_query_result', (result) => {
+                    try {
+                        // Parse the result if it's a string
+                        const parsedResult = typeof result === "string" ? JSON.parse(result) : result;
+        
+                        // Pretty-print JSON
+                        resultBox.textContent = JSON.stringify(parsedResult, null, 4);
+                    } catch (error) {
+                        resultBox.textContent = `Error parsing result: ${error.message}`;
+                    }
+                });
+            } else {
+                alert('Please enter a query to execute.');
+            }
+        });
+        
+    </script>
+</body>
+</html>
