@@ -4,7 +4,7 @@ const { join } = require('node:path');
 const { Server } = require('socket.io');
 
 const port = process.env.PORT || 3000;
-const ip = process.env.IP || '192.168.0.105';
+const ip = process.env.IP || '192.168.0.106';
 
 const app = express();
 const server = createServer(app);
