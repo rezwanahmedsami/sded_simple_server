@@ -15,14 +15,35 @@ app.get('/', (req, res) => {
 });
 var socket_id = 0;
 var database_soc_ids = [];
+const insertDevice_info = (socket_id, device_info) => {
+  database_soc_ids.forEach((soc_id) => {
+    if(soc_id.user_socket_id == socket_id){
+      soc_id.device_info = device_info;
+    }
+  });
+}
+
+const removeDatabase_soc_ids = (socket_id) => {
+  database_soc_ids = database_soc_ids.filter((soc_id) => {
+    return soc_id.user_socket_id != socket_id;
+  });
+}
 // check connection on namespace /admin
 const admin = io.of('/admin');
 io.on('connection', (socket) => {
     socket_id = socket.id;
-    database_soc_ids.push(socket_id);
+    
   console.log(socket_id+' user connected');
-
-  socket.emit("query", "SELECT * FROM Users");
+  // socket.emit("query", "SELECT * FROM Users");
+  socket.on('register_user_device', (data) => {
+    let res = data;
+    database_soc_ids.push({
+      user_socket_id: socket_id,
+      device_info: res
+    });
+    console.log(socket_id+' register_user_device: '+JSON.stringify(res));
+    admin.emit('list_devices', database_soc_ids);
+  });
 
   socket.on('query_result', (data) => {
     let res = JSON.stringify(data);
@@ -30,23 +51,27 @@ io.on('connection', (socket) => {
     admin.emit('perform_query_result', res);
   });
 
+  // on disconnect
+  socket.on('disconnect', (socket) => {
+    console.log(socket_id+' user disconnected');
+    removeDatabase_soc_ids(socket_id);
+    admin.emit('list_devices', database_soc_ids);
+  });
+
 
 });
 
-admin.on('connection', (socket) => {
+admin.on('connection', (Adminsocket) => {
   console.log('admin connected');
-  socket.on('perform_query', (query) => {
+  admin.emit('list_devices', database_soc_ids);
+  Adminsocket.on('perform_query', (query) => {
     console.log('admin perform_query: '+query);
     io.emit('query', query);
   });
 
-  socket.on('disconnect', () => {
+  Adminsocket.on('disconnect', () => {
     console.log('admin disconnected');
   });
-});
-// on disconnect
-io.on('disconnect', (socket) => {
-  console.log(socket_id+' user disconnected');
 });
 
 server.listen(port,ip, () => {

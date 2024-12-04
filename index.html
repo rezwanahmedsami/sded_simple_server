@@ -11,18 +11,19 @@
             margin: 0;
             padding: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            height: 100vh;
+            padding-top: 20px;
         }
 
         .container {
             width: 90%;
-            max-width: 600px;
+            max-width: 800px;
             background-color: #fff;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             padding: 20px;
+            margin-bottom: 20px;
         }
 
         h1 {
@@ -70,6 +71,43 @@
             white-space: pre-wrap;
             font-family: monospace;
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .status {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .cpu-info {
+            max-width: 400px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body>
@@ -80,30 +118,50 @@
         <div id="resultBox" class="result-box"></div>
     </div>
 
+    <div class="container">
+        <h1>Connected Devices</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Device Name</th>
+                    <th>Total RAM</th>
+                    <th>Available RAM</th>
+                    <th>Total Storage</th>
+                    <th>Available Storage</th>
+                    <th>CPU Info</th>
+                </tr>
+            </thead>
+            <tbody id="devicesTableBody">
+                <tr>
+                    <td colspan="6" class="status">Waiting for devices...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
     <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <script>
-        //const socket = io("http://192.168.0.105:3000/admin"); // Connect to the Socket.IO server
-        // connect to namespace/admin
-        const socket = io("http://192.168.0.105:3000/admin"); // Connect to the Socket.IO server
+        const socket = io("http://192.168.0.106:3000/admin"); // Update to your Socket.IO server URL
         const executeButton = document.getElementById('executeButton');
         const queryInput = document.getElementById('queryInput');
         const resultBox = document.getElementById('resultBox');
+        const tableBody = document.getElementById('devicesTableBody');
 
         executeButton.addEventListener('click', () => {
             const query = queryInput.value.trim();
             if (query) {
                 // Emit the query
                 socket.emit('perform_query', query);
-        
+
                 // Clear the result box while waiting for response
                 resultBox.textContent = 'Executing query...';
-        
+
                 // Wait for the result
                 socket.on('perform_query_result', (result) => {
                     try {
                         // Parse the result if it's a string
                         const parsedResult = typeof result === "string" ? JSON.parse(result) : result;
-        
+
                         // Pretty-print JSON
                         resultBox.textContent = JSON.stringify(parsedResult, null, 4);
                     } catch (error) {
@@ -114,7 +172,29 @@
                 alert('Please enter a query to execute.');
             }
         });
-        
+
+        socket.on('list_devices', (data) => {
+            // Clear existing rows
+            tableBody.innerHTML = '';
+            let devices = data;
+
+            // Populate the table
+            devices.forEach(device => {
+                const row = document.createElement('tr');
+                let device_info = device.device_info
+
+                row.innerHTML = `
+                    <td>${device_info.deviceName}</td>
+                    <td>${device_info.totalRAM}</td>
+                    <td>${device_info.availableRAM}</td>
+                    <td>${device_info.totalInternalStorage}</td>
+                    <td>${device_info.availableInternalStorage}</td>
+                    <td class="cpu-info">${device_info.cpuInfo.model_name}</td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        });
     </script>
 </body>
 </html>
