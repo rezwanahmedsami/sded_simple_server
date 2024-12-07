@@ -129,6 +129,7 @@
                     <th>Total Storage</th>
                     <th>Available Storage</th>
                     <th>CPU Info</th>
+                    <th>Ping Latency</th>
                 </tr>
             </thead>
             <tbody id="devicesTableBody">
@@ -141,7 +142,7 @@
 
     <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <script>
-        const socket = io("http://192.168.0.106:3000/admin"); // Update to your Socket.IO server URL
+        const socket = io("http://10.152.90.119:3001/admin"); // Update to your Socket.IO server URL
         const executeButton = document.getElementById('executeButton');
         const queryInput = document.getElementById('queryInput');
         const resultBox = document.getElementById('resultBox');
@@ -181,7 +182,8 @@
             // Populate the table
             devices.forEach(device => {
                 const row = document.createElement('tr');
-                let device_info = device.device_info
+                let device_info = device.device_info;
+                row.id = device.user_socket_id;
 
                 row.innerHTML = `
                     <td>${device_info.deviceName}</td>
@@ -190,11 +192,29 @@
                     <td>${device_info.totalInternalStorage}</td>
                     <td>${device_info.availableInternalStorage}</td>
                     <td class="cpu-info">${device_info.cpuInfo.model_name}</td>
+                    <td>${device.ping}</td>
                 `;
 
                 tableBody.appendChild(row);
             });
         });
+
+        socket.on('ping_latency', (data) => {
+            const deviceRow = document.getElementById(data.socket_id); // Locate the row using user_socket_id
+            if (deviceRow) {
+                // Update the ping latency cell (last cell)
+                const pingCell = deviceRow.cells[6]; // Cell index 6 is for Ping Latency
+                pingCell.innerHTML = data.latency; // Update latency value
+                // flash the cell
+                pingCell.style.backgroundColor = 'yellow';
+                setTimeout(() => {
+                    pingCell.style.backgroundColor = '';
+                }, 1000);
+            } else {
+                console.error(`Row for device with ID ${data.socket_id} not found.`);
+            }
+        });
+
     </script>
 </body>
 </html>

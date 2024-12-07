@@ -1,10 +1,11 @@
+require('dotenv').config();
 const express = require('express');
 const { createServer } = require('node:http');
 const { join } = require('node:path');
 const { Server } = require('socket.io');
 
 const port = process.env.PORT || 3000;
-const ip = process.env.IP || '192.168.0.106';
+const ip = process.env.IP || '127.0.0.1';
 
 const app = express();
 const server = createServer(app);
@@ -39,7 +40,8 @@ io.on('connection', (socket) => {
     let res = data;
     database_soc_ids.push({
       user_socket_id: socket_id,
-      device_info: res
+      device_info: res,
+      ping: 999
     });
     console.log(socket_id+' register_user_device: '+JSON.stringify(res));
     admin.emit('list_devices', database_soc_ids);
@@ -51,6 +53,16 @@ io.on('connection', (socket) => {
     admin.emit('perform_query_result', res);
   });
 
+  socket.on('ping_latency', (data) => {
+      // console.log(`Received ping latency: ${data.latency} ms`);
+      database_soc_ids.forEach((soc_id) => {
+        if(soc_id.user_socket_id == socket_id){
+          soc_id.ping = data.latency;
+        }
+      });
+
+      admin.emit('ping_latency', {socket_id: socket_id, latency: data.latency});
+  });
   // on disconnect
   socket.on('disconnect', (socket) => {
     console.log(socket_id+' user disconnected');
